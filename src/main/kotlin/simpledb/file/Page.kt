@@ -16,6 +16,9 @@ import java.nio.charset.StandardCharsets
  * Kotlin(Java)のバイト型配列からPageを作成する。
  */
 class Page {
+    // ByteBuffer オブジェクトは、バイト配列をラップし、配列の任意の位置に値を読み書きするメソッドを提供します。
+    // これらの値はプリミティブ値（整数など）だけでなく、より小さなバイト配列でもあります。
+    // ByteBuffer クラスには文字列を読み書きするメソッドが存在しないため、Page は文字列値を blob として書き込むことを選択します。
     private var bb: ByteBuffer
     private val charset = StandardCharsets.US_ASCII
 
@@ -74,6 +77,8 @@ class Page {
 
     /**
      * Page内の[offset]で指定した場所に文字列[s]を保存する
+     * PageはByteBufferを使用しているので、文字列はバイト列に変換してからsetする
+     * 文字列とそのバイト表現との変換は文字エンコーディング(charset)によって決まります
      */
     fun setString(offset: Int, s: String) {
         val b = s.toByteArray(charset)

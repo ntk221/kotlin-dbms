@@ -16,11 +16,22 @@ import java.lang.RuntimeException
  * @property openFiles 開いているファイル
  */
 
+
+/**
+ * ファイルマネージャーは常にブロックサイズ分のバイトをファイルから読み取るか書き込むため、ファイルマネージャーは常にブロック境界で読み書きを行います。
+ * これにより、read、write、またはappendの各呼び出しに正確に1回のディスクアクセスが発生することが保証されます。
+ */
+
+/**
+ * read、write、およびappendメソッドは同期化(Synchronizedアノテーション)されており、同時に1つのスレッドしか実行できないことを意味します。
+ */
+
 class FileManager(
     val dbDirectory: File,
     val blockSize: Int,
 ) {
     var isNew: Boolean = !dbDirectory.exists()
+    // オープンされたファイルに対応するオブジェクト
     private val openFiles: MutableMap<String, RandomAccessFile> = mutableMapOf<String, RandomAccessFile>()
 
     /**
@@ -44,14 +55,14 @@ class FileManager(
     }
 
     /**
-     * 指定されたブロック[blockId]の内容を指定したページ[page]に読み込む
+     * 指定されたファイルの適切な位置を[blockId]で指定してシークし、そのブロックの内容を指定されたページ[page]のバイトバッファに読み込みます。
      */
     @Synchronized
     fun read(blockId: BlockId, page: Page) {
         try {
             val f = getFile(blockId.filename)
             f.seek((blockId.number * blockSize).toLong())
-            f.channel.read(page.contents())
+            f.channel.read(page.contents()) // channel??
         } catch (e: IOException) {
             throw RuntimeException("cannot write block $blockId")
         }
@@ -106,6 +117,9 @@ class FileManager(
     /**
      * 指定したファイル[filename]を取得する
      * @return RandomAccessFileオブジェクト
+     *
+     * ファイルは「rws」モードで開かれていることに注意してください。「rw」部分はファイルが読み書きのために開かれていることを指定しています。
+     * 「s」部分は、ディスクのパフォーマンスを最適化するためにディスクI/Oを遅延しないようにするためのものです。
      */
     private fun getFile(filename: String): RandomAccessFile {
         var f = openFiles[filename]
